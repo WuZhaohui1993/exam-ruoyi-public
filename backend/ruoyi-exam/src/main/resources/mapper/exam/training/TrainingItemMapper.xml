@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.exam.training.mapper.TrainingItemMapper">
+
+    <resultMap type="TrainingItem" id="TrainingItemResult">
+        <id     property="id"                column="id"                 />
+        <result property="itemType"          column="item_type"          />
+        <result property="title"             column="title"              />
+        <result property="summary"           column="summary"            />
+        <result property="content"           column="content"            />
+        <result property="parentId"          column="parent_id"          />
+        <result property="categoryId"        column="category_id"        />
+        <result property="coverUrl"          column="cover_url"          />
+        <result property="fileUrl"           column="file_url"           />
+        <result property="thumbnailUrl"      column="thumbnail_url"      />
+        <result property="resourceType"      column="resource_type"      />
+        <result property="processingStatus"  column="processing_status"  />
+        <result property="processingMessage" column="processing_message" />
+        <result property="relatedExamId"     column="related_exam_id"    />
+        <result property="relatedPaperId"    column="related_paper_id"   />
+        <result property="userId"            column="user_id"            />
+        <result property="userName"          column="user_name"          />
+        <result property="answerContent"     column="answer_content"     />
+        <result property="status"            column="status"             />
+        <result property="sortOrder"         column="sort_order"         />
+        <result property="durationMinutes"   column="duration_minutes"   />
+        <result property="credit"            column="credit"             />
+        <result property="score"             column="score"              />
+        <result property="startTime"         column="start_time"         />
+        <result property="finishTime"        column="finish_time"        />
+        <result property="createBy"          column="create_by"          />
+        <result property="createTime"        column="create_time"        />
+        <result property="updateBy"          column="update_by"          />
+        <result property="updateTime"        column="update_time"        />
+        <result property="remark"            column="remark"             />
+        <result property="learnerCount"      column="learner_count"      />
+        <result property="completedCount"    column="completed_count"    />
+        <result property="resourceCount"     column="resource_count"     />
+        <result property="courseTitle"       column="course_title"       />
+        <result property="userNickName"      column="user_nick_name"     />
+        <result property="targetDurationMinutes" column="target_duration_minutes" />
+        <result property="progressPercent"   column="progress_percent"   />
+    </resultMap>
+
+    <resultMap type="TrainingSummary" id="TrainingSummaryResult">
+        <result property="courseCount"      column="course_count"      />
+        <result property="resourceCount"    column="resource_count"    />
+        <result property="qaCount"          column="qa_count"          />
+        <result property="certificateCount" column="certificate_count" />
+        <result property="attachmentCount"  column="attachment_count"  />
+        <result property="practiceCount"    column="practice_count"    />
+        <result property="publishedCount"   column="published_count"   />
+        <result property="completedCount"   column="completed_count"   />
+        <result property="openQaCount"      column="open_qa_count"     />
+        <result property="mediaReadyCount"  column="media_ready_count"  />
+        <result property="mediaSkippedCount" column="media_skipped_count" />
+        <result property="mediaFailedCount" column="media_failed_count" />
+        <result property="totalCredit"      column="total_credit"      />
+        <result property="averageScore"     column="average_score"     />
+    </resultMap>
+
+    <sql id="selectTrainingItemVo">
+        select i.id, i.item_type, i.title, i.summary, i.content, i.parent_id, i.category_id,
+               i.cover_url, i.file_url, i.thumbnail_url, i.resource_type,
+               i.processing_status, i.processing_message, i.related_exam_id, i.related_paper_id,
+               i.user_id, u.user_name, i.answer_content, i.status, i.sort_order,
+               i.duration_minutes, i.credit, i.score, i.start_time, i.finish_time,
+               i.create_by, i.create_time, i.update_by, i.update_time, i.remark,
+               (select count(1) from exam_training_item p where p.parent_id = i.id and p.item_type = 'progress') as learner_count,
+               (select count(1) from exam_training_item p where p.parent_id = i.id and p.item_type = 'progress' and p.status = 'completed') as completed_count,
+               (select count(1) from exam_training_item r where r.parent_id = i.id and r.item_type in ('lesson','resource','media_resource')) as resource_count
+        from exam_training_item i
+        left join sys_user u on u.user_id = i.user_id
+    </sql>
+
+    <select id="selectTrainingItemList" parameterType="TrainingItem" resultMap="TrainingItemResult">
+        <include refid="selectTrainingItemVo"/>
+        <where>
+            <if test="itemType != null and itemType != ''">
+                AND i.item_type = #{itemType}
+            </if>
+            <if test="title != null and title != ''">
+                AND i.title like concat('%', #{title}, '%')
+            </if>
+            <if test="parentId != null">
+                AND i.parent_id = #{parentId}
+            </if>
+            <if test="categoryId != null">
+                AND i.category_id = #{categoryId}
+            </if>
+            <if test="resourceType != null and resourceType != ''">
+                AND i.resource_type = #{resourceType}
+            </if>
+            <if test="status != null and status != ''">
+                AND i.status = #{status}
+            </if>
+            <if test="processingStatus != null and processingStatus != ''">
+                AND i.processing_status = #{processingStatus}
+            </if>
+            <if test="userId != null">
+                AND i.user_id = #{userId}
+            </if>
+        </where>
+        order by i.sort_order asc, i.create_time desc, i.id desc
+    </select>
+
+    <select id="selectTrainingItemById" parameterType="Long" resultMap="TrainingItemResult">
+        <include refid="selectTrainingItemVo"/>
+        where i.id = #{id}
+    </select>
+
+    <insert id="insertTrainingItem" parameterType="TrainingItem" useGeneratedKeys="true" keyProperty="id">
+        insert into exam_training_item(
+            item_type, title, summary, content, parent_id, category_id, cover_url, file_url,
+            thumbnail_url, resource_type, processing_status, processing_message,
+            related_exam_id, related_paper_id, user_id, answer_content, status, sort_order,
+            duration_minutes, credit, score, start_time, finish_time, create_by, create_time, remark
+        ) values (
+            #{itemType}, #{title}, #{summary}, #{content}, #{parentId}, #{categoryId}, #{coverUrl}, #{fileUrl},
+            #{thumbnailUrl}, #{resourceType}, #{processingStatus}, #{processingMessage},
+            #{relatedExamId}, #{relatedPaperId}, #{userId}, #{answerContent}, #{status}, #{sortOrder},
+            #{durationMinutes}, #{credit}, #{score}, #{startTime}, #{finishTime}, #{createBy}, sysdate(), #{remark}
+        )
+    </insert>
+
+    <update id="updateTrainingItem" parameterType="TrainingItem">
+        update exam_training_item
+        <set>
+            item_type = #{itemType},
+            title = #{title},
+            summary = #{summary},
+            content = #{content},
+            parent_id = #{parentId},
+            category_id = #{categoryId},
+            cover_url = #{coverUrl},
+            file_url = #{fileUrl},
+            thumbnail_url = #{thumbnailUrl},
+            resource_type = #{resourceType},
+            processing_status = #{processingStatus},
+            processing_message = #{processingMessage},
+            related_exam_id = #{relatedExamId},
+            related_paper_id = #{relatedPaperId},
+            user_id = #{userId},
+            answer_content = #{answerContent},
+            status = #{status},
+            sort_order = #{sortOrder},
+            duration_minutes = #{durationMinutes},
+            credit = #{credit},
+            score = #{score},
+            start_time = #{startTime},
+            finish_time = #{finishTime},
+            remark = #{remark},
+            <if test="updateBy != null and updateBy != ''">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where id = #{id}
+    </update>
+
+    <update id="updateProcessingResult" parameterType="TrainingItem">
+        update exam_training_item
+        set processing_status = #{processingStatus},
+            processing_message = #{processingMessage},
+            thumbnail_url = #{thumbnailUrl},
+            update_by = #{updateBy},
+            update_time = sysdate()
+        where id = #{id}
+    </update>
+
+    <delete id="deleteTrainingItemByIds" parameterType="Long">
+        delete from exam_training_item where id in
+        <foreach collection="array" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="selectAdminSummary" resultMap="TrainingSummaryResult">
+        select
+            sum(case when item_type = 'course' then 1 else 0 end) as course_count,
+            sum(case when item_type in ('lesson','resource','media_resource') then 1 else 0 end) as resource_count,
+            sum(case when item_type = 'qa' then 1 else 0 end) as qa_count,
+            sum(case when item_type = 'certificate' then 1 else 0 end) as certificate_count,
+            (select count(1) from exam_training_attachment where status = '0') as attachment_count,
+            sum(case when item_type = 'practice' then 1 else 0 end) as practice_count,
+            sum(case when status = 'published' then 1 else 0 end) as published_count,
+            sum(case when status = 'completed' then 1 else 0 end) as completed_count,
+            sum(case when item_type = 'qa' and status = 'open' then 1 else 0 end) as open_qa_count,
+            sum(case when item_type = 'media_resource' and processing_status = 'ready' then 1 else 0 end) as media_ready_count,
+            sum(case when item_type = 'media_resource' and processing_status = 'skipped' then 1 else 0 end) as media_skipped_count,
+            sum(case when item_type = 'media_resource' and processing_status = 'failed' then 1 else 0 end) as media_failed_count,
+            coalesce(sum(case
+                when item_type in ('progress','credit','practice') and status = 'completed' then credit
+                when item_type = 'certificate' and status = 'issued' then credit
+                else 0
+            end), 0) as total_credit,
+            avg(case when item_type in ('practice','progress') and score is not null then score else null end) as average_score
+        from exam_training_item
+    </select>
+
+    <select id="selectStudentSummary" resultMap="TrainingSummaryResult">
+        select
+            (select count(1) from exam_training_item where item_type = 'course' and status = 'published') as course_count,
+            (select count(1) from exam_training_item where item_type in ('lesson','resource','media_resource') and status = 'published') as resource_count,
+            (select count(1) from exam_training_item where item_type = 'qa' and user_id = #{userId}) as qa_count,
+            (select count(1) from exam_training_item where item_type = 'certificate' and user_id = #{userId}) as certificate_count,
+            (select count(1) from exam_training_attachment where user_id = #{userId} and status = '0') as attachment_count,
+            (select count(1) from exam_training_item where item_type = 'practice' and user_id = #{userId}) as practice_count,
+            (select count(1) from exam_training_item where item_type in ('course','lesson','resource','media_resource') and status = 'published') as published_count,
+            (select count(1) from exam_training_item where user_id = #{userId} and item_type = 'progress' and status = 'completed') as completed_count,
+            (select count(1) from exam_training_item where item_type = 'qa' and user_id = #{userId} and status = 'open') as open_qa_count,
+            (select count(1) from exam_training_item where item_type = 'media_resource' and status = 'published' and processing_status = 'ready') as media_ready_count,
+            (select count(1) from exam_training_item where item_type = 'media_resource' and status = 'published' and processing_status = 'skipped') as media_skipped_count,
+            (select count(1) from exam_training_item where item_type = 'media_resource' and status = 'published' and processing_status = 'failed') as media_failed_count,
+            (select coalesce(sum(case
+                when item_type in ('progress','credit','practice') and status = 'completed' then credit
+                when item_type = 'certificate' and status = 'issued' then credit
+                else 0
+            end), 0) from exam_training_item where user_id = #{userId}) as total_credit,
+            (select avg(score) from exam_training_item where user_id = #{userId} and item_type in ('practice','progress') and score is not null) as average_score
+    </select>
+
+    <select id="selectLearningLedgerList" parameterType="TrainingItem" resultMap="TrainingItemResult">
+        select p.id, p.item_type, p.title, p.summary, p.content, p.parent_id, p.category_id,
+               p.cover_url, p.file_url, p.thumbnail_url, p.resource_type,
+               p.processing_status, p.processing_message, p.related_exam_id, p.related_paper_id,
+               p.user_id, u.user_name, u.nick_name as user_nick_name, p.answer_content, p.status, p.sort_order,
+               p.duration_minutes, p.credit, p.score, p.start_time, p.finish_time,
+               p.create_by, p.create_time, p.update_by, p.update_time, p.remark,
+               c.title as course_title,
+               c.duration_minutes as target_duration_minutes,
+               case
+                   when c.duration_minutes is null or c.duration_minutes &lt;= 0 then
+                       case when p.status = 'completed' then 100 else 0 end
+                   else least(round(coalesce(p.duration_minutes, 0) * 100 / c.duration_minutes, 1), 100)
+               end as progress_percent,
+               0 as learner_count,
+               0 as completed_count,
+               0 as resource_count
+        from exam_training_item p
+        left join exam_training_item c on c.id = p.parent_id and c.item_type = 'course'
+        left join sys_user u on u.user_id = p.user_id
+        <where>
+            p.item_type = 'progress'
+            <if test="parentId != null">
+                AND p.parent_id = #{parentId}
+            </if>
+            <if test="title != null and title != ''">
+                AND (p.title like concat('%', #{title}, '%') or c.title like concat('%', #{title}, '%'))
+            </if>
+            <if test="status != null and status != ''">
+                AND p.status = #{status}
+            </if>
+            <if test="userId != null">
+                AND p.user_id = #{userId}
+            </if>
+            <if test="userName != null and userName != ''">
+                AND (u.user_name like concat('%', #{userName}, '%') or u.nick_name like concat('%', #{userName}, '%'))
+            </if>
+        </where>
+        order by p.update_time desc, p.create_time desc, p.id desc
+    </select>
+
+    <select id="selectCourseOptions" resultType="java.util.Map">
+        select id, title
+        from exam_training_item
+        where item_type = 'course'
+        <if test="keyword != null and keyword != ''">
+            and title like concat('%', #{keyword}, '%')
+        </if>
+        order by sort_order asc, create_time desc, id desc
+        limit 50
+    </select>
+
+    <select id="selectExamOptions" resultType="java.util.Map">
+        select id, exam_name as examName, status, start_time as startTime, end_time as endTime
+        from exam_examination
+        where status in ('1', '2')
+        <if test="keyword != null and keyword != ''">
+            and (exam_name like concat('%', #{keyword}, '%') or cast(id as char) = #{keyword})
+        </if>
+        order by create_time desc, id desc
+        limit 50
+    </select>
+
+    <select id="selectStudentOptions" resultType="java.util.Map">
+        select u.user_id as userId, u.user_name as userName, u.nick_name as nickName, u.dept_id as deptId, d.dept_name as deptName
+        from sys_user u
+        left join sys_dept d on d.dept_id = u.dept_id
+        where u.del_flag = '0'
+          and u.status = '0'
+        <if test="keyword != null and keyword != ''">
+            and (u.user_name like concat('%', #{keyword}, '%') or u.nick_name like concat('%', #{keyword}, '%') or cast(u.user_id as char) = #{keyword})
+        </if>
+        order by u.user_id asc
+        limit 50
+    </select>
+</mapper>

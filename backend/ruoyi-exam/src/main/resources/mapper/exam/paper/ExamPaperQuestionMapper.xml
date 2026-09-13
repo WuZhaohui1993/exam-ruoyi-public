@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.exam.paper.mapper.ExamPaperQuestionMapper">
+    
+    <resultMap type="ExamPaperQuestion" id="ExamPaperQuestionResult">
+        <result property="id"            column="id"            />
+        <result property="paperId"       column="paper_id"      />
+        <result property="questionId"    column="question_id"   />
+        <result property="questionOrder" column="question_order"/>
+        <result property="score"         column="score"         />
+        <result property="createTime"    column="create_time"   />
+    </resultMap>
+
+    <resultMap type="ExamPaperQuestion" id="ExamPaperQuestionWithDetailResult">
+        <result property="id"            column="id"            />
+        <result property="paperId"       column="paper_id"      />
+        <result property="questionId"    column="question_id"   />
+        <result property="questionOrder" column="question_order"/>
+        <result property="score"         column="score"         />
+        <result property="createTime"    column="create_time"   />
+        <association property="question" javaType="ExamQuestion">
+            <result property="id"              column="q_id"              />
+            <result property="questionTitle"   column="q_question_title"  />
+            <result property="questionContent" column="q_question_content"/>
+            <result property="questionType"    column="q_question_type"   />
+            <result property="questionOptions" column="q_question_options"/>
+            <result property="correctAnswer"   column="q_correct_answer"  />
+            <result property="questionAnalysis" column="q_question_analysis"/>
+            <result property="difficultyLevel" column="q_difficulty_level"/>
+            <result property="tags"            column="q_tags"            />
+        </association>
+    </resultMap>
+
+    <sql id="selectExamPaperQuestionVo">
+        select id, paper_id, question_id, question_order, score, create_time
+        from exam_paper_question
+    </sql>
+
+    <select id="selectExamPaperQuestionList" parameterType="ExamPaperQuestion" resultMap="ExamPaperQuestionResult">
+        <include refid="selectExamPaperQuestionVo"/>
+        <where>  
+            <if test="paperId != null "> and paper_id = #{paperId}</if>
+            <if test="questionId != null "> and question_id = #{questionId}</if>
+            <if test="questionOrder != null "> and question_order = #{questionOrder}</if>
+        </where>
+        order by question_order
+    </select>
+    
+    <select id="selectExamPaperQuestionById" parameterType="Long" resultMap="ExamPaperQuestionResult">
+        <include refid="selectExamPaperQuestionVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectQuestionsByPaperId" parameterType="Long" resultMap="ExamPaperQuestionResult">
+        <include refid="selectExamPaperQuestionVo"/>
+        where paper_id = #{paperId}
+        order by question_order
+    </select>
+
+    <select id="selectQuestionsWithDetailsByPaperId" parameterType="Long" resultMap="ExamPaperQuestionWithDetailResult">
+        select pq.id, pq.paper_id, pq.question_id, pq.question_order, pq.score, pq.create_time,
+               q.id as q_id, q.question_title as q_question_title, q.question_content as q_question_content,
+               q.question_type as q_question_type, q.question_options as q_question_options,
+               q.correct_answer as q_correct_answer, q.question_analysis as q_question_analysis,
+               q.difficulty_level as q_difficulty_level, q.tags as q_tags
+        from exam_paper_question pq
+        left join exam_question q on pq.question_id = q.id
+        where pq.paper_id = #{paperId}
+        order by pq.question_order
+    </select>
+
+    <select id="countQuestionsByPaperId" parameterType="Long" resultType="int">
+        select count(*) from exam_paper_question where paper_id = #{paperId}
+    </select>
+        
+    <insert id="insertExamPaperQuestion" parameterType="ExamPaperQuestion" useGeneratedKeys="true" keyProperty="id">
+        insert into exam_paper_question(
+            <if test="paperId != null">paper_id,</if>
+            <if test="questionId != null">question_id,</if>
+            <if test="questionOrder != null">question_order,</if>
+            <if test="score != null">score,</if>
+            create_time
+        ) values (
+            <if test="paperId != null">#{paperId},</if>
+            <if test="questionId != null">#{questionId},</if>
+            <if test="questionOrder != null">#{questionOrder},</if>
+            <if test="score != null">#{score},</if>
+            sysdate()
+        )
+    </insert>
+
+    <update id="updateExamPaperQuestion" parameterType="ExamPaperQuestion">
+        update exam_paper_question
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="paperId != null">paper_id = #{paperId},</if>
+            <if test="questionId != null">question_id = #{questionId},</if>
+            <if test="questionOrder != null">question_order = #{questionOrder},</if>
+            <if test="score != null">score = #{score}</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteExamPaperQuestionById" parameterType="Long">
+        delete from exam_paper_question where id = #{id}
+    </delete>
+
+    <delete id="deleteExamPaperQuestionByIds" parameterType="String">
+        delete from exam_paper_question where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="deleteExamPaperQuestionByPaperId" parameterType="Long">
+        delete from exam_paper_question where paper_id = #{paperId}
+    </delete>
+
+    <delete id="deleteByPaperId" parameterType="Long">
+        delete from exam_paper_question where paper_id = #{paperId}
+    </delete>
+
+    <insert id="batchInsert" parameterType="List">
+        insert into exam_paper_question(paper_id, question_id, question_order, score, create_time)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.paperId}, #{item.questionId}, #{item.questionOrder}, #{item.score}, sysdate())
+        </foreach>
+    </insert>
+
+    <insert id="batchInsertPaperQuestions">
+        insert into exam_paper_question(paper_id, question_id, question_order, score, create_time)
+        values
+        <foreach collection="questionIds" item="questionId" index="index" separator=",">
+            (#{paperId}, #{questionId}, #{index + 1}, 5.0, sysdate())
+        </foreach>
+    </insert>
+
+    <update id="updateQuestionOrder" parameterType="List">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update exam_paper_question set question_order = #{item.questionOrder}
+            where id = #{item.id}
+        </foreach>
+    </update>
+
+</mapper> 

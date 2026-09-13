@@ -1,0 +1,15 @@
+.DS_Store
+logs/
+*.log
+uploadPath/
+.playwright-mcp/
+frontend/dist/
+frontend/node_modules/
+backend/**/target/
+
+# Private local configuration, raw database archives and extracted build output
+.local/
+backend/ruoyi-admin/src/main/resources/application-druid.yml
+backend/sql/ry-vue-exam*.sql
+sql/ry-vue-exam-local.sql
+BOOT-INF/

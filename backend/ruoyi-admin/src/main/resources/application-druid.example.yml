@@ -1,0 +1,7 @@
+# Public example only. Supply credentials through environment variables.
+spring:
+  datasource:
+    druid:
+      url: ${MYSQL_URL}
+      username: ${MYSQL_USERNAME}
+      password: ${MYSQL_PASSWORD}

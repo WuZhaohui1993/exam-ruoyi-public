@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.exam.examination.mapper.ExamAnswerRecordMapper">
+    
+    <resultMap type="ExamAnswerRecord" id="ExamAnswerRecordResult">
+        <result property="id"                column="id"                />
+        <result property="examId"            column="exam_id"           />
+        <result property="examUserId"        column="exam_user_id"      />
+        <result property="userId"            column="user_id"           />
+        <result property="paperId"           column="paper_id"          />
+        <result property="questionId"        column="question_id"       />
+        <result property="userAnswer"        column="user_answer"       />
+        <result property="correctAnswer"     column="correct_answer"    />
+        <result property="questionScore"     column="question_score"    />
+        <result property="userScore"         column="user_score"        />
+        <result property="isCorrect"         column="is_correct"        />
+        <result property="isGraded"          column="is_graded"         />
+        <result property="graderId"          column="grader_id"         />
+        <result property="answerTime"        column="answer_time"       />
+        <result property="gradeTime"         column="grade_time"        />
+        <result property="gradeComment"      column="grade_comment"     />
+        <result property="gradeBy"           column="grade_by"          />
+        <result property="timeSpent"         column="time_spent"        />
+        <result property="version"           column="version"           />
+        <result property="createTime"        column="create_time"       />
+        <result property="updateTime"        column="update_time"       />
+    </resultMap>
+
+    <resultMap type="ExamAnswerRecord" id="ExamAnswerRecordWithQuestionResult">
+        <result property="id"                column="id"                />
+        <result property="examId"            column="exam_id"           />
+        <result property="examUserId"        column="exam_user_id"      />
+        <result property="userId"            column="user_id"           />
+        <result property="paperId"           column="paper_id"          />
+        <result property="questionId"        column="question_id"       />
+        <result property="userAnswer"        column="user_answer"       />
+        <result property="correctAnswer"     column="correct_answer"    />
+        <result property="questionScore"     column="question_score"    />
+        <result property="userScore"         column="user_score"        />
+        <result property="isCorrect"         column="is_correct"        />
+        <result property="answerTime"        column="answer_time"       />
+        <result property="gradeTime"         column="grade_time"        />
+        <result property="gradeBy"           column="grade_by"          />
+        <result property="createTime"        column="create_time"       />
+        <result property="updateTime"        column="update_time"       />
+        <association property="question" javaType="com.ruoyi.exam.question.domain.ExamQuestion">
+            <result property="id"              column="q_id"              />
+            <result property="questionTitle"   column="q_question_title"  />
+            <result property="questionContent" column="q_question_content"/>
+            <result property="questionType"    column="q_question_type"   />
+            <result property="questionOptions" column="q_question_options"/>
+            <result property="correctAnswer"   column="q_correct_answer"  />
+            <result property="questionAnalysis" column="q_question_analysis"/>
+            <result property="difficultyLevel" column="q_difficulty_level"/>
+            <result property="tags"            column="q_tags"            />
+        </association>
+    </resultMap>
+
+    <sql id="selectExamAnswerRecordVo">
+        select id, exam_id, exam_user_id, user_id, paper_id, question_id, user_answer, correct_answer, 
+               question_score, user_score, is_correct, is_graded, grader_id, answer_time, grade_time, 
+               grade_comment, grade_by, time_spent, version, create_time, update_time 
+        from exam_answer_record
+    </sql>
+
+    <select id="selectExamAnswerRecordList" parameterType="ExamAnswerRecord" resultMap="ExamAnswerRecordResult">
+        <include refid="selectExamAnswerRecordVo"/>
+        <where>  
+            <if test="examId != null "> and exam_id = #{examId}</if>
+            <if test="examUserId != null "> and exam_user_id = #{examUserId}</if>
+            <if test="userId != null "> and user_id = #{userId}</if>
+            <if test="paperId != null "> and paper_id = #{paperId}</if>
+            <if test="questionId != null "> and question_id = #{questionId}</if>
+            <if test="isCorrect != null  and isCorrect != ''"> and is_correct = #{isCorrect}</if>
+        </where>
+        order by id desc
+    </select>
+    
+    <select id="selectExamAnswerRecordById" parameterType="Long" resultMap="ExamAnswerRecordResult">
+        <include refid="selectExamAnswerRecordVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectAnswerRecordsByExamUserId" parameterType="Long" resultMap="ExamAnswerRecordResult">
+        <include refid="selectExamAnswerRecordVo"/>
+        where exam_user_id = #{examUserId}
+        order by question_id
+    </select>
+
+    <select id="selectAnswerRecordByExamUserIdAndQuestionId" resultMap="ExamAnswerRecordResult">
+        <include refid="selectExamAnswerRecordVo"/>
+        where exam_user_id = #{examUserId} and question_id = #{questionId}
+    </select>
+
+    <select id="selectAnswerRecordsByExamId" parameterType="Long" resultMap="ExamAnswerRecordResult">
+        <include refid="selectExamAnswerRecordVo"/>
+        where exam_id = #{examId}
+        order by user_id, question_id
+    </select>
+
+    <select id="selectAnswerRecordsByUserId" parameterType="Long" resultMap="ExamAnswerRecordResult">
+        <include refid="selectExamAnswerRecordVo"/>
+        where user_id = #{userId}
+        order by create_time desc
+    </select>
+
+    <select id="selectAnswerRecordsByExamIdAndUserId" resultMap="ExamAnswerRecordResult">
+        <include refid="selectExamAnswerRecordVo"/>
+        where exam_id = #{examId} and user_id = #{userId}
+        order by question_id
+    </select>
+
+    <select id="countAnswerRecordsByExamId" parameterType="Long" resultType="int">
+        select count(*) from exam_answer_record where exam_id = #{examId}
+    </select>
+
+    <select id="countAnswerRecordsByExamUserId" parameterType="Long" resultType="int">
+        select count(*) from exam_answer_record where exam_user_id = #{examUserId}
+    </select>
+
+    <select id="countAnsweredUsersByExamId" parameterType="Long" resultType="int">
+        select count(distinct user_id) from exam_answer_record where exam_id = #{examId}
+    </select>
+
+    <select id="selectHighestScoreRecordByExamId" parameterType="Long" resultMap="ExamAnswerRecordResult">
+        <include refid="selectExamAnswerRecordVo"/>
+        where exam_id = #{examId}
+        order by user_score desc
+        limit 1
+    </select>
+
+    <select id="selectAverageScoreByExamId" parameterType="Long" resultType="Double">
+        select avg(user_score) from exam_answer_record where exam_id = #{examId}
+    </select>
+
+    <insert id="insertExamAnswerRecord" parameterType="ExamAnswerRecord" useGeneratedKeys="true" keyProperty="id">
+        insert into exam_answer_record
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="examId != null">exam_id,</if>
+            <if test="examUserId != null">exam_user_id,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="paperId != null">paper_id,</if>
+            <if test="questionId != null">question_id,</if>
+            <if test="userAnswer != null">user_answer,</if>
+            <if test="correctAnswer != null">correct_answer,</if>
+            <if test="questionScore != null">question_score,</if>
+            <if test="userScore != null">user_score,</if>
+            <if test="isCorrect != null">is_correct,</if>
+            <if test="isGraded != null">is_graded,</if>
+            <if test="graderId != null">grader_id,</if>
+            <if test="answerTime != null">answer_time,</if>
+            <if test="gradeTime != null">grade_time,</if>
+            <if test="gradeComment != null">grade_comment,</if>
+            <if test="gradeBy != null">grade_by,</if>
+            <if test="timeSpent != null">time_spent,</if>
+            <if test="version != null">version,</if>
+            create_time,
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="examId != null">#{examId},</if>
+            <if test="examUserId != null">#{examUserId},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="paperId != null">#{paperId},</if>
+            <if test="questionId != null">#{questionId},</if>
+            <if test="userAnswer != null">#{userAnswer},</if>
+            <if test="correctAnswer != null">#{correctAnswer},</if>
+            <if test="questionScore != null">#{questionScore},</if>
+            <if test="userScore != null">#{userScore},</if>
+            <if test="isCorrect != null">#{isCorrect},</if>
+            <if test="isGraded != null">#{isGraded},</if>
+            <if test="graderId != null">#{graderId},</if>
+            <if test="answerTime != null">#{answerTime},</if>
+            <if test="gradeTime != null">#{gradeTime},</if>
+            <if test="gradeComment != null">#{gradeComment},</if>
+            <if test="gradeBy != null">#{gradeBy},</if>
+            <if test="timeSpent != null">#{timeSpent},</if>
+            <if test="version != null">#{version},</if>
+            sysdate(),
+        </trim>
+    </insert>
+
+    <!-- 并发安全的插入或更新答题记录 -->
+    <insert id="insertOrUpdateExamAnswerRecord" parameterType="ExamAnswerRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO exam_answer_record (
+            exam_id, exam_user_id, user_id, paper_id, question_id, user_answer, 
+            correct_answer, question_score, user_score, is_correct, is_graded, 
+            grader_id, answer_time, grade_time, grade_comment, grade_by, 
+            time_spent, version, create_time, update_time
+        ) VALUES (
+            #{examId}, #{examUserId}, #{userId}, #{paperId}, #{questionId}, #{userAnswer}, 
+            #{correctAnswer}, #{questionScore}, #{userScore}, #{isCorrect}, #{isGraded}, 
+            #{graderId}, #{answerTime}, #{gradeTime}, #{gradeComment}, #{gradeBy}, 
+            #{timeSpent}, COALESCE(#{version}, 0), sysdate(), sysdate()
+        )
+        ON DUPLICATE KEY UPDATE
+            user_answer = VALUES(user_answer),
+            answer_time = VALUES(answer_time),
+            correct_answer = VALUES(correct_answer),
+            question_score = VALUES(question_score),
+            version = version + 1,
+            update_time = sysdate()
+    </insert>
+
+    <update id="updateExamAnswerRecord" parameterType="ExamAnswerRecord">
+        update exam_answer_record
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="examId != null">exam_id = #{examId},</if>
+            <if test="examUserId != null">exam_user_id = #{examUserId},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="paperId != null">paper_id = #{paperId},</if>
+            <if test="questionId != null">question_id = #{questionId},</if>
+            <if test="userAnswer != null">user_answer = #{userAnswer},</if>
+            <if test="correctAnswer != null">correct_answer = #{correctAnswer},</if>
+            <if test="questionScore != null">question_score = #{questionScore},</if>
+            <if test="userScore != null">user_score = #{userScore},</if>
+            <if test="isCorrect != null">is_correct = #{isCorrect},</if>
+            <if test="isGraded != null">is_graded = #{isGraded},</if>
+            <if test="graderId != null">grader_id = #{graderId},</if>
+            <if test="answerTime != null">answer_time = #{answerTime},</if>
+            <if test="gradeTime != null">grade_time = #{gradeTime},</if>
+            <if test="gradeComment != null">grade_comment = #{gradeComment},</if>
+            <if test="gradeBy != null">grade_by = #{gradeBy},</if>
+            <if test="timeSpent != null">time_spent = #{timeSpent},</if>
+            update_time = sysdate(),
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteExamAnswerRecordById" parameterType="Long">
+        delete from exam_answer_record where id = #{id}
+    </delete>
+
+    <delete id="deleteExamAnswerRecordByIds" parameterType="String">
+        delete from exam_answer_record where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="deleteAnswerRecordsByExamId" parameterType="Long">
+        delete from exam_answer_record where exam_id = #{examId}
+    </delete>
+
+    <delete id="deleteAnswerRecordsByExamUserId" parameterType="Long">
+        delete from exam_answer_record where exam_user_id = #{examUserId}
+    </delete>
+
+    <insert id="batchInsertExamAnswerRecord" parameterType="List">
+        insert into exam_answer_record (exam_id, exam_user_id, user_id, paper_id, question_id, user_answer, 
+                                       correct_answer, question_score, user_score, is_correct, 
+                                       is_graded, grader_id, answer_time, grade_time, grade_by, 
+                                       time_spent, create_time) values
+        <foreach item="item" index="index" collection="list" separator=",">
+            (#{item.examId}, #{item.examUserId}, #{item.userId}, #{item.paperId}, #{item.questionId}, 
+             #{item.userAnswer}, #{item.correctAnswer}, #{item.questionScore}, #{item.userScore}, 
+             #{item.isCorrect}, #{item.isGraded}, #{item.graderId}, #{item.answerTime}, #{item.gradeTime}, 
+             #{item.gradeBy}, #{item.timeSpent}, sysdate())
+        </foreach>
+    </insert>
+
+    <update id="batchUpdateExamAnswerRecord" parameterType="List">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update exam_answer_record
+            <set>
+                user_answer = #{item.userAnswer},
+                correct_answer = #{item.correctAnswer},
+                question_score = #{item.questionScore},
+                user_score = #{item.userScore},
+                is_correct = #{item.isCorrect},
+                is_graded = #{item.isGraded},
+                grader_id = #{item.graderId},
+                answer_time = #{item.answerTime},
+                grade_time = #{item.gradeTime},
+                grade_by = #{item.gradeBy},
+                time_spent = #{item.timeSpent},
+                update_time = sysdate()
+            </set>
+            where id = #{item.id}
+        </foreach>
+    </update>
+
+    <select id="selectAnswerRecordsWithQuestionsByExamUserId" parameterType="Long" resultMap="ExamAnswerRecordWithQuestionResult">
+        select r.id, r.exam_id, r.exam_user_id, r.user_id, r.paper_id, r.question_id, 
+               r.user_answer, r.correct_answer, r.question_score, r.user_score, r.is_correct, 
+               r.answer_time, r.grade_time, r.grade_by, r.create_time, r.update_time,
+               q.id as q_id, q.question_title as q_question_title, q.question_content as q_question_content,
+               q.question_type as q_question_type, q.question_options as q_question_options,
+               q.correct_answer as q_correct_answer, q.question_analysis as q_question_analysis,
+               q.difficulty_level as q_difficulty_level, q.tags as q_tags
+        from exam_answer_record r
+        left join exam_question q on r.question_id = q.id
+        where r.exam_user_id = #{examUserId}
+        order by r.question_id
+    </select>
+
+</mapper> 

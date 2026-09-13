@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.exam.examination.mapper.ExamExaminationMapper">
+
+    <resultMap type="ExamExamination" id="ExamExaminationResult">
+        <result property="id"                      column="id"                      />
+        <result property="examName"                column="exam_name"               />
+        <result property="categoryId"              column="category_id"             />
+        <result property="categoryName"            column="category_name"           />
+        <result property="paperId"                 column="paper_id"                />
+        <result property="paperName"               column="paper_name"              />
+        <result property="examDescription"         column="exam_description"        />
+        <result property="startTime"               column="start_time"              />
+        <result property="endTime"                 column="end_time"                />
+        <result property="duration"                column="duration"                />
+        <result property="maxAttempts"             column="max_attempts"            />
+        <result property="passScore"               column="pass_score"              />
+        <result property="totalScore"              column="total_score"             />
+        <result property="paperTotalScore"         column="paper_total_score"       />
+        <result property="examType"                column="exam_type"               />
+        <result property="examMode"                column="exam_mode"               />
+        <result property="registrationRequired"    column="registration_required"   />
+        <result property="registrationStartTime"   column="registration_start_time" />
+        <result property="registrationEndTime"     column="registration_end_time"   />
+        <result property="autoGrade"               column="auto_grade"              />
+        <result property="resultPublishType"       column="result_publish_type"     />
+        <result property="resultPublishTime"       column="result_publish_time"     />
+        <result property="allowReview"             column="allow_review"            />
+        <result property="shuffleQuestions"        column="shuffle_questions"       />
+        <result property="shuffleOptions"          column="shuffle_options"         />
+        <result property="monitorMode"             column="monitor_mode"            />
+        <result property="antiCheat"               column="anti_cheat"              />
+        <result property="certificateTemplateId"   column="certificate_template_id" />
+        <result property="status"                  column="status"                  />
+        <result property="creatorId"               column="creator_id"              />
+        <result property="creatorName"             column="creator_name"            />
+        <result property="createBy"                column="create_by"               />
+        <result property="createTime"              column="create_time"             />
+        <result property="updateBy"                column="update_by"               />
+        <result property="updateTime"              column="update_time"             />
+        <result property="remark"                  column="remark"                  />
+        <result property="registeredCount"         column="registered_count"        />
+        <result property="submittedCount"          column="submitted_count"         />
+        <result property="passedCount"             column="passed_count"            />
+    </resultMap>
+
+    <sql id="selectExamExaminationVo">
+        select e.id, e.exam_name, e.category_id, e.paper_id, e.exam_description, e.start_time, e.end_time,
+               e.duration, e.max_attempts, e.pass_score, e.total_score, e.exam_type, e.exam_mode,
+               e.registration_required, e.registration_start_time, e.registration_end_time,
+               e.auto_grade, e.result_publish_type, e.result_publish_time, e.allow_review,
+               e.shuffle_questions, e.shuffle_options, e.monitor_mode, e.anti_cheat,
+               e.certificate_template_id, e.status, e.creator_id, e.create_by, e.create_time,
+               e.update_by, e.update_time, e.remark,
+               c.category_name, p.paper_name, p.total_score as paper_total_score, u.nick_name as creator_name
+        from exam_examination e
+        left join exam_examination_category c on e.category_id = c.id
+        left join exam_paper p on e.paper_id = p.id
+        left join sys_user u on e.creator_id = u.user_id
+    </sql>
+
+    <sql id="selectExamExaminationWithStatsVo">
+        select e.id, e.exam_name, e.category_id, e.paper_id, e.exam_description, e.start_time, e.end_time,
+               e.duration, e.max_attempts, e.pass_score, e.total_score, e.exam_type, e.exam_mode,
+               e.registration_required, e.registration_start_time, e.registration_end_time,
+               e.auto_grade, e.result_publish_type, e.result_publish_time, e.allow_review,
+               e.shuffle_questions, e.shuffle_options, e.monitor_mode, e.anti_cheat,
+               e.certificate_template_id, e.status, e.creator_id, e.create_by, e.create_time,
+               e.update_by, e.update_time, e.remark,
+               c.category_name, p.paper_name, p.total_score as paper_total_score, u.nick_name as creator_name,
+               IFNULL(stats.registered_count, 0) as registered_count,
+               IFNULL(stats.submitted_count, 0) as submitted_count,
+               IFNULL(stats.passed_count, 0) as passed_count
+        from exam_examination e
+        left join exam_examination_category c on e.category_id = c.id
+        left join exam_paper p on e.paper_id = p.id
+        left join sys_user u on e.creator_id = u.user_id
+        left join (
+            select exam_id,
+                   count(*) as registered_count,
+                   sum(case when exam_status in ('submitted', 'graded') or submit_time is not null then 1 else 0 end) as submitted_count,
+                   sum(case when is_passed = '1' then 1 else 0 end) as passed_count
+            from exam_user
+            group by exam_id
+        ) stats on e.id = stats.exam_id
+    </sql>
+
+    <select id="selectExamExaminationList" parameterType="ExamExamination" resultMap="ExamExaminationResult">
+        <include refid="selectExamExaminationWithStatsVo"/>
+        <where>
+            <if test="examName != null  and examName != ''"> and e.exam_name like concat('%', #{examName}, '%')</if>
+            <if test="categoryId != null "> and e.category_id = #{categoryId}</if>
+            <if test="paperId != null "> and e.paper_id = #{paperId}</if>
+            <if test="status != null  and status != ''"> and e.status = #{status}</if>
+            <if test="examType != null  and examType != ''"> and e.exam_type = #{examType}</if>
+            <if test="examMode != null  and examMode != ''"> and e.exam_mode = #{examMode}</if>
+            <if test="creatorId != null "> and e.creator_id = #{creatorId}</if>
+            <if test="params.beginTime != null and params.beginTime != ''"><!-- 开始时间检索 -->
+                and date_format(e.start_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+            </if>
+            <if test="params.endTime != null and params.endTime != ''"><!-- 结束时间检索 -->
+                and date_format(e.end_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+            </if>
+        </where>
+        order by e.create_time desc
+    </select>
+
+    <select id="selectExamExaminationById" parameterType="Long" resultMap="ExamExaminationResult">
+        <include refid="selectExamExaminationVo"/>
+        where e.id = #{id}
+    </select>
+
+    <select id="selectExamExaminationWithDetails" parameterType="Long" resultMap="ExamExaminationResult">
+        <include refid="selectExamExaminationWithStatsVo"/>
+        where e.id = #{id}
+    </select>
+
+    <select id="selectExamExaminationListByStatus" parameterType="String" resultMap="ExamExaminationResult">
+        <include refid="selectExamExaminationVo"/>
+        where e.status = #{status}
+        order by e.create_time desc
+    </select>
+
+    <select id="selectExamExaminationListByCategoryId" parameterType="Long" resultMap="ExamExaminationResult">
+        <include refid="selectExamExaminationVo"/>
+        where e.category_id = #{categoryId}
+        order by e.create_time desc
+    </select>
+
+    <select id="selectExamExaminationListByCreatorId" parameterType="Long" resultMap="ExamExaminationResult">
+        <include refid="selectExamExaminationVo"/>
+        where e.creator_id = #{creatorId}
+        order by e.create_time desc
+    </select>
+
+    <sql id="studentExamAccessFilter">
+        and (
+            exists (
+                select 1 from exam_user access_eu
+                where access_eu.exam_id = e.id
+                  and access_eu.user_id = #{params.userId}
+            )
+            or exists (
+                select 1
+                from exam_examination_dept access_ed
+                left join sys_dept access_d on access_d.dept_id = #{params.deptId}
+                where access_ed.exam_id = e.id
+                  and (
+                      access_ed.dept_id = #{params.deptId}
+                      or (access_ed.include_children = '1'
+                          and access_d.ancestors is not null
+                          and find_in_set(access_ed.dept_id, access_d.ancestors))
+                  )
+            )
+            or (
+                not exists (select 1 from exam_user any_eu where any_eu.exam_id = e.id)
+                and not exists (select 1 from exam_examination_dept any_ed where any_ed.exam_id = e.id)
+            )
+        )
+    </sql>
+
+    <select id="selectAvailableExaminations" parameterType="ExamExamination" resultMap="ExamExaminationResult">
+        <include refid="selectExamExaminationVo"/>
+        where e.status = '2'
+          and e.start_time &lt;= now()
+          and e.end_time &gt;= now()
+          <include refid="studentExamAccessFilter"/>
+          and (e.registration_required = '0'
+               or (e.registration_required = '1'
+                   and e.registration_start_time &lt;= now()
+                   and e.registration_end_time &gt;= now()))
+          and not exists (
+              select 1 from exam_user eu
+              where eu.exam_id = e.id
+                and eu.user_id = #{params.userId}
+                and eu.exam_status = 'graded'
+                and eu.attempt_count >= e.max_attempts
+          )
+        order by e.start_time asc
+    </select>
+
+    <select id="selectStudentExamList" parameterType="ExamExamination" resultMap="ExamExaminationResult">
+        <include refid="selectExamExaminationWithStatsVo"/>
+        <where>
+            <!-- 排除草稿状态 -->
+            <if test="params.excludeDraft != null and params.excludeDraft == 'true'">
+                and e.status != '0'
+            </if>
+            <!-- 查询条件 -->
+            <if test="examName != null and examName != ''">
+                and e.exam_name like concat('%', #{examName}, '%')
+            </if>
+            <if test="categoryId != null ">
+                and e.category_id = #{categoryId}
+            </if>
+            <if test="paperId != null ">
+                and e.paper_id = #{paperId}
+            </if>
+            <if test="status != null and status != ''">
+                and e.status = #{status}
+            </if>
+            <if test="examType != null and examType != ''">
+                and e.exam_type = #{examType}
+            </if>
+            <if test="examMode != null and examMode != ''">
+                and e.exam_mode = #{examMode}
+            </if>
+            <if test="creatorId != null ">
+                and e.creator_id = #{creatorId}
+            </if>
+            <if test="params.beginTime != null and params.beginTime != ''">
+                and date_format(e.start_time,'%y%m%d') &gt;= date_format(#{params.beginTime},'%y%m%d')
+            </if>
+            <if test="params.endTime != null and params.endTime != ''">
+                and date_format(e.end_time,'%y%m%d') &lt;= date_format(#{params.endTime},'%y%m%d')
+            </if>
+            <if test="params.userId != null">
+                <include refid="studentExamAccessFilter"/>
+            </if>
+        </where>
+        order by
+            <!-- 智能排序：进行中的考试排在最前面 -->
+            case
+                when e.start_time &lt;= now() and e.end_time &gt; now() then 1  -- 进行中
+                when e.start_time &gt; now() then 2  -- 未开始
+                else 3  -- 已结束
+            end,
+            <!-- 进行中的考试按结束时间升序（快结束的在前） -->
+            case when e.start_time &lt;= now() and e.end_time &gt; now() then e.end_time end asc,
+            <!-- 未开始的考试按开始时间升序 -->
+            case when e.start_time &gt; now() then e.start_time end asc,
+            <!-- 已结束的考试按结束时间降序 -->
+            case when e.end_time &lt;= now() then e.end_time end desc
+    </select>
+
+    <select id="checkExamNameUnique" parameterType="String" resultMap="ExamExaminationResult">
+        <include refid="selectExamExaminationVo"/>
+        where e.exam_name = #{examName} limit 1
+    </select>
+
+    <select id="selectDeptIdsByExamId" parameterType="Long" resultType="Long">
+        select dept_id from exam_examination_dept where exam_id = #{examId} order by dept_id asc
+    </select>
+
+    <select id="selectIncludeChildDeptByExamId" parameterType="Long" resultType="String">
+        select max(include_children) from exam_examination_dept where exam_id = #{examId}
+    </select>
+
+    <select id="countExamDeptByExamId" parameterType="Long" resultType="int">
+        select count(1) from exam_examination_dept where exam_id = #{examId}
+    </select>
+
+    <delete id="deleteExamDeptByExamId" parameterType="Long">
+        delete from exam_examination_dept where exam_id = #{examId}
+    </delete>
+
+    <insert id="batchInsertExamDept">
+        insert into exam_examination_dept (exam_id, dept_id, include_children, create_by, create_time)
+        values
+        <foreach collection="deptIds" item="deptId" separator=",">
+            (#{examId}, #{deptId}, #{includeChildDept}, #{createBy}, sysdate())
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            include_children = VALUES(include_children),
+            update_time = sysdate()
+    </insert>
+
+    <select id="checkUserExamAccess" resultType="int">
+        select count(1)
+        from exam_examination e
+        where e.id = #{examId}
+          and (
+              exists (
+                  select 1 from exam_user eu
+                  where eu.exam_id = e.id
+                    and eu.user_id = #{userId}
+              )
+              or exists (
+                  select 1
+                  from exam_examination_dept ed
+                  left join sys_dept d on d.dept_id = #{deptId}
+                  where ed.exam_id = e.id
+                    and (
+                        ed.dept_id = #{deptId}
+                        or (ed.include_children = '1'
+                            and d.ancestors is not null
+                            and find_in_set(ed.dept_id, d.ancestors))
+                    )
+              )
+              or (
+                  not exists (select 1 from exam_user any_eu where any_eu.exam_id = e.id)
+                  and not exists (select 1 from exam_examination_dept any_ed where any_ed.exam_id = e.id)
+              )
+          )
+    </select>
+
+    <select id="countExaminations" parameterType="ExamExamination" resultType="int">
+        select count(1) from exam_examination e
+        <where>
+            <if test="categoryId != null "> and e.category_id = #{categoryId}</if>
+            <if test="status != null  and status != ''"> and e.status = #{status}</if>
+            <if test="examType != null  and examType != ''"> and e.exam_type = #{examType}</if>
+            <if test="creatorId != null "> and e.creator_id = #{creatorId}</if>
+        </where>
+    </select>
+
+    <insert id="insertExamExamination" parameterType="ExamExamination" useGeneratedKeys="true" keyProperty="id">
+        insert into exam_examination
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="examName != null and examName != ''">exam_name,</if>
+            <if test="categoryId != null">category_id,</if>
+            <if test="paperId != null">paper_id,</if>
+            <if test="examDescription != null">exam_description,</if>
+            <if test="startTime != null">start_time,</if>
+            <if test="endTime != null">end_time,</if>
+            <if test="duration != null">duration,</if>
+            <if test="maxAttempts != null">max_attempts,</if>
+            <if test="passScore != null">pass_score,</if>
+            <if test="totalScore != null">total_score,</if>
+            <if test="examType != null">exam_type,</if>
+            <if test="examMode != null">exam_mode,</if>
+            <if test="registrationRequired != null">registration_required,</if>
+            <if test="registrationStartTime != null">registration_start_time,</if>
+            <if test="registrationEndTime != null">registration_end_time,</if>
+            <if test="autoGrade != null">auto_grade,</if>
+            <if test="resultPublishType != null">result_publish_type,</if>
+            <if test="resultPublishTime != null">result_publish_time,</if>
+            <if test="allowReview != null">allow_review,</if>
+            <if test="shuffleQuestions != null">shuffle_questions,</if>
+            <if test="shuffleOptions != null">shuffle_options,</if>
+            <if test="monitorMode != null">monitor_mode,</if>
+            <if test="antiCheat != null">anti_cheat,</if>
+            <if test="certificateTemplateId != null">certificate_template_id,</if>
+            <if test="status != null">status,</if>
+            <if test="creatorId != null">creator_id,</if>
+            <if test="createBy != null">create_by,</if>
+            create_time,
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="remark != null">remark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="examName != null and examName != ''">#{examName},</if>
+            <if test="categoryId != null">#{categoryId},</if>
+            <if test="paperId != null">#{paperId},</if>
+            <if test="examDescription != null">#{examDescription},</if>
+            <if test="startTime != null">#{startTime},</if>
+            <if test="endTime != null">#{endTime},</if>
+            <if test="duration != null">#{duration},</if>
+            <if test="maxAttempts != null">#{maxAttempts},</if>
+            <if test="passScore != null">#{passScore},</if>
+            <if test="totalScore != null">#{totalScore},</if>
+            <if test="examType != null">#{examType},</if>
+            <if test="examMode != null">#{examMode},</if>
+            <if test="registrationRequired != null">#{registrationRequired},</if>
+            <if test="registrationStartTime != null">#{registrationStartTime},</if>
+            <if test="registrationEndTime != null">#{registrationEndTime},</if>
+            <if test="autoGrade != null">#{autoGrade},</if>
+            <if test="resultPublishType != null">#{resultPublishType},</if>
+            <if test="resultPublishTime != null">#{resultPublishTime},</if>
+            <if test="allowReview != null">#{allowReview},</if>
+            <if test="shuffleQuestions != null">#{shuffleQuestions},</if>
+            <if test="shuffleOptions != null">#{shuffleOptions},</if>
+            <if test="monitorMode != null">#{monitorMode},</if>
+            <if test="antiCheat != null">#{antiCheat},</if>
+            <if test="certificateTemplateId != null">#{certificateTemplateId},</if>
+            <if test="status != null">#{status},</if>
+            <if test="creatorId != null">#{creatorId},</if>
+            <if test="createBy != null">#{createBy},</if>
+            sysdate(),
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="remark != null">#{remark},</if>
+         </trim>
+    </insert>
+
+    <update id="updateExamExamination" parameterType="ExamExamination">
+        update exam_examination
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="examName != null and examName != ''">exam_name = #{examName},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="paperId != null">paper_id = #{paperId},</if>
+            <if test="examDescription != null">exam_description = #{examDescription},</if>
+            <if test="startTime != null">start_time = #{startTime},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="duration != null">duration = #{duration},</if>
+            <if test="maxAttempts != null">max_attempts = #{maxAttempts},</if>
+            <if test="passScore != null">pass_score = #{passScore},</if>
+            <if test="totalScore != null">total_score = #{totalScore},</if>
+            <if test="examType != null">exam_type = #{examType},</if>
+            <if test="examMode != null">exam_mode = #{examMode},</if>
+            <if test="registrationRequired != null">registration_required = #{registrationRequired},</if>
+            <if test="registrationStartTime != null">registration_start_time = #{registrationStartTime},</if>
+            <if test="registrationEndTime != null">registration_end_time = #{registrationEndTime},</if>
+            <if test="autoGrade != null">auto_grade = #{autoGrade},</if>
+            <if test="resultPublishType != null">result_publish_type = #{resultPublishType},</if>
+            <if test="resultPublishTime != null">result_publish_time = #{resultPublishTime},</if>
+            <if test="allowReview != null">allow_review = #{allowReview},</if>
+            <if test="shuffleQuestions != null">shuffle_questions = #{shuffleQuestions},</if>
+            <if test="shuffleOptions != null">shuffle_options = #{shuffleOptions},</if>
+            <if test="monitorMode != null">monitor_mode = #{monitorMode},</if>
+            <if test="antiCheat != null">anti_cheat = #{antiCheat},</if>
+            <if test="certificateTemplateId != null">certificate_template_id = #{certificateTemplateId},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = sysdate(),
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <update id="updateExamStatus">
+        update exam_examination set status = #{status}, update_time = sysdate() where id = #{id}
+    </update>
+
+    <update id="publishExamination" parameterType="Long">
+        update exam_examination
+        set status = '1', update_time = sysdate()
+        where id = #{id} and status in ('0', '3', '4')
+    </update>
+
+    <update id="cancelExamination" parameterType="Long">
+        update exam_examination
+        set status = '4', update_time = sysdate()
+        where id = #{id} and status in ('0', '1')
+    </update>
+
+    <delete id="deleteExamExaminationById" parameterType="Long">
+        delete from exam_examination where id = #{id}
+    </delete>
+
+    <delete id="deleteExamExaminationByIds" parameterType="String">
+        delete from exam_examination where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 根据状态和时间查询考试列表（用于自动开始） -->
+    <select id="selectExaminationsByStatusAndTime" resultMap="ExamExaminationResult">
+        <include refid="selectExamExaminationVo"/>
+        where e.status = #{status}
+          and e.start_time &lt;= #{currentTime}
+          and e.end_time &gt; #{currentTime}
+        order by e.start_time asc
+    </select>
+
+    <!-- 根据状态和结束时间查询考试列表（用于自动结束） -->
+    <select id="selectExaminationsByStatusAndEndTime" resultMap="ExamExaminationResult">
+        <include refid="selectExamExaminationVo"/>
+        where e.status = #{status}
+          and e.end_time &lt;= #{currentTime}
+        order by e.end_time asc
+    </select>
+
+    <!-- 根据状态统计考试数量 -->
+    <select id="countByStatus" parameterType="String" resultType="int">
+        select count(*) from exam_examination where status = #{status}
+    </select>
+
+    <!-- 统计已发布的考试数量 -->
+    <select id="countPublishedExaminations" resultType="int">
+        select count(*) from exam_examination where status in ('1', '2')
+    </select>
+
+    <!-- 统计业务数据（今日、本周、本月考试数量） -->
+    <select id="selectBusinessStatistics" resultType="map">
+        SELECT
+            (SELECT COUNT(*) FROM exam_examination
+             WHERE date_format(create_time, '%Y-%m-%d') = date_format(now(), '%Y-%m-%d')
+               AND status != '0') as todayExams,
+            (SELECT COUNT(*) FROM exam_examination
+             WHERE YEARWEEK(date_format(create_time,'%Y-%m-%d'), 1) = YEARWEEK(now(), 1)
+               AND status != '0') as weekExams,
+            (SELECT COUNT(*) FROM exam_examination
+             WHERE date_format(create_time, '%Y-%m') = date_format(now(), '%Y-%m')
+               AND status != '0') as monthExams
+    </select>
+
+</mapper>

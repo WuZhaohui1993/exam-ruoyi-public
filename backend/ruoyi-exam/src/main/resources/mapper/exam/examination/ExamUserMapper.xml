@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.exam.examination.mapper.ExamUserMapper">
+    
+    <resultMap type="ExamUser" id="ExamUserResult">
+        <result property="id"                  column="id"                  />
+        <result property="examId"              column="exam_id"             />
+        <result property="examName"            column="exam_name"           />
+        <result property="userId"              column="user_id"             />
+        <result property="userName"            column="user_name"           />
+        <result property="nickName"            column="nick_name"           />
+        <result property="deptId"              column="dept_id"             />
+        <result property="deptName"            column="dept_name"           />
+        <result property="registrationTime"    column="registration_time"   />
+        <result property="registrationStatus"  column="registration_status" />
+        <result property="examStatus"          column="exam_status"         />
+        <result property="startTime"           column="start_time"          />
+        <result property="submitTime"          column="submit_time"         />
+        <result property="attemptCount"        column="attempt_count"       />
+        <result property="attemptNumber"       column="attempt_number"      />
+        <result property="totalScore"          column="total_score"         />
+        <result property="passScore"           column="pass_score"          />
+        <result property="isPassed"            column="is_passed"           />
+        <result property="gradeTime"           column="grade_time"          />
+        <result property="gradeBy"             column="grade_by"            />
+        <result property="createBy"            column="create_by"           />
+        <result property="createTime"          column="create_time"         />
+        <result property="updateBy"            column="update_by"           />
+        <result property="updateTime"          column="update_time"         />
+    </resultMap>
+
+    <sql id="selectExamUserVo">
+        select eu.id, eu.exam_id, ee.exam_name, eu.user_id, 
+               su.user_name, su.nick_name, eu.dept_id, sd.dept_name,
+               eu.registration_time, eu.registration_status, eu.exam_status, 
+               eu.start_time, eu.submit_time, eu.attempt_count, eu.attempt_number,
+               eu.total_score, eu.pass_score, eu.is_passed, eu.grade_time, eu.grade_by,
+               eu.create_by, eu.create_time, eu.update_by, eu.update_time
+        from exam_user eu
+        left join sys_user su on eu.user_id = su.user_id
+        left join sys_dept sd on eu.dept_id = sd.dept_id
+        left join exam_examination ee on eu.exam_id = ee.id
+    </sql>
+
+    <select id="selectExamUserList" parameterType="ExamUser" resultMap="ExamUserResult">
+        <include refid="selectExamUserVo"/>
+        <where>  
+            <if test="examId != null "> and eu.exam_id = #{examId}</if>
+            <if test="userId != null "> and eu.user_id = #{userId}</if>
+            <if test="userIds != null and userIds.length > 0">
+                and eu.user_id in
+                <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+                    #{userId}
+                </foreach>
+            </if>
+            <if test="deptId != null "> and eu.dept_id = #{deptId}</if>
+            <if test="userName != null and userName != ''"> and su.user_name like concat('%', #{userName}, '%')</if>
+            <if test="nickName != null and nickName != ''"> and su.nick_name like concat('%', #{nickName}, '%')</if>
+            <if test="searchName != null and searchName != ''">
+                and (su.user_name like concat('%', #{searchName}, '%') or su.nick_name like concat('%', #{searchName}, '%'))
+            </if>
+            <if test="examStatus != null and examStatus != ''"> and eu.exam_status = #{examStatus}</if>
+            <if test="isPassed != null and isPassed != ''"> and eu.is_passed = #{isPassed}</if>
+            <if test="minScore != null"> and eu.total_score &gt;= #{minScore}</if>
+            <if test="maxScore != null"> and eu.total_score &lt;= #{maxScore}</if>
+        </where>
+        order by eu.create_time desc
+    </select>
+    
+    <select id="selectExamUserById" parameterType="Long" resultMap="ExamUserResult">
+        <include refid="selectExamUserVo"/>
+        where eu.id = #{id}
+    </select>
+
+    <!-- 根据考试ID查询考试用户列表 -->
+    <select id="selectExamUserByExamId" parameterType="Long" resultMap="ExamUserResult">
+        <include refid="selectExamUserVo"/>
+        where eu.exam_id = #{examId}
+        order by eu.create_time desc
+    </select>
+
+    <!-- 根据考试ID查询用户ID列表 -->
+    <select id="selectUserIdsByExamId" parameterType="Long" resultType="Long">
+        select distinct eu.user_id from exam_user eu where eu.exam_id = #{examId}
+    </select>
+
+    <!-- 根据用户ID查询考试用户列表 -->
+    <select id="selectExamUserByUserId" parameterType="Long" resultMap="ExamUserResult">
+        <include refid="selectExamUserVo"/>
+        where eu.user_id = #{userId}
+        order by eu.create_time desc
+    </select>
+
+    <!-- 根据用户ID查询考试记录列表 -->
+    <select id="selectExamUserListByUserId" parameterType="Long" resultMap="ExamUserResult">
+        <include refid="selectExamUserVo"/>
+        where eu.user_id = #{userId}
+        order by eu.create_time desc
+    </select>
+
+    <!-- 根据考试ID和用户ID查询考试用户关联 -->
+    <select id="selectExamUserByExamIdAndUserId" resultMap="ExamUserResult">
+        <include refid="selectExamUserVo"/>
+        where eu.exam_id = #{examId} and eu.user_id = #{userId}
+        order by eu.attempt_number desc
+        limit 1
+    </select>
+
+    <!-- 查询用户当前考试次数 -->
+    <select id="selectCurrentExamUser" resultMap="ExamUserResult">
+        <include refid="selectExamUserVo"/>
+        where eu.exam_id = #{examId} and eu.user_id = #{userId}
+        order by eu.create_time desc
+        limit 1
+    </select>
+
+    <!-- 统计考试报名人数 -->
+    <select id="countRegisteredUsers" parameterType="Long" resultType="int">
+        select count(*) from exam_user where exam_id = #{examId}
+    </select>
+
+    <!-- 统计考试已提交人数 -->
+    <select id="countSubmittedUsers" parameterType="Long" resultType="int">
+        select count(*) from exam_user where exam_id = #{examId} and exam_status in ('submitted', 'graded')
+    </select>
+
+    <!-- 统计考试通过人数 -->
+    <select id="countPassedUsers" parameterType="Long" resultType="int">
+        select count(*) from exam_user where exam_id = #{examId} and exam_status = 'graded' and is_passed = '1'
+    </select>
+
+    <!-- 统计用户考试次数 -->
+    <select id="countUserAttempts" resultType="int">
+        select count(*) from exam_user 
+        where exam_id = #{examId} and user_id = #{userId} 
+        and start_time is not null
+    </select>
+
+    <!-- 查询用户在该考试下已经占用的最大轮次号，避免旧数据或强制收卷记录撞唯一索引 -->
+    <select id="selectMaxAttemptNumber" resultType="int">
+        select ifnull(max(attempt_number), 0) from exam_user
+        where exam_id = #{examId} and user_id = #{userId}
+    </select>
+
+    <!-- 查询某场考试已占用的最大轮次号，用于限制进行中考试次数不能调低到已有轮次以下 -->
+    <select id="selectMaxAttemptNumberByExamId" parameterType="Long" resultType="int">
+        select ifnull(max(attempt_number), 0) from exam_user
+        where exam_id = #{examId}
+    </select>
+
+    <!-- 统计用户总数 -->
+    <select id="countTotalUsers" resultType="int">
+        select count(distinct user_id) from exam_user
+    </select>
+
+    <!-- 检查用户是否已报名 -->
+    <select id="checkUserRegistered" resultType="int">
+        select count(*) from exam_user where exam_id = #{examId} and user_id = #{userId}
+    </select>
+
+    <!-- 检查用户是否可以参加考试 -->
+    <select id="checkUserCanTakeExam" resultType="int">
+        select count(*) from exam_user 
+        where exam_id = #{examId} and user_id = #{userId} 
+        and registration_status = 'approved' and exam_status in ('registered', 'not_started', 'in_progress')
+    </select>
+
+    <!-- 根据考试ID查询考试用户列表（包含用户信息） -->
+    <select id="selectExamUserListByExamId" parameterType="Long" resultMap="ExamUserResult">
+        <include refid="selectExamUserVo"/>
+        where eu.exam_id = #{examId}
+        order by eu.create_time desc
+    </select>
+
+    <!-- 统计正在考试的用户数量 -->
+    <select id="countInProgressUsers" parameterType="Long" resultType="int">
+        select count(*) from exam_user where exam_id = #{examId} and exam_status = 'in_progress'
+    </select>
+
+    <!-- 根据部门ID查询用户ID列表 -->
+    <select id="selectUserIdsByDeptId" parameterType="Long" resultType="Long">
+        select user_id from sys_user where dept_id = #{deptId} and del_flag = '0' and status = '0'
+    </select>
+
+    <!-- 递归查询部门及其所有子部门ID -->
+    <select id="selectAllSubDeptIds" parameterType="Long" resultType="Long">
+        WITH RECURSIVE dept_tree AS (
+            SELECT dept_id FROM sys_dept WHERE dept_id = #{deptId} AND del_flag = '0'
+            UNION ALL
+            SELECT d.dept_id FROM sys_dept d 
+            INNER JOIN dept_tree dt ON d.parent_id = dt.dept_id 
+            WHERE d.del_flag = '0'
+        )
+        SELECT dept_id FROM dept_tree
+    </select>
+
+    <!-- 根据用户名查询用户ID -->
+    <select id="selectUserIdByUserName" parameterType="String" resultType="Long">
+        select user_id from sys_user where user_name = #{userName} and del_flag = '0'
+    </select>
+
+    <insert id="insertExamUser" parameterType="ExamUser" useGeneratedKeys="true" keyProperty="id">
+        insert into exam_user
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="examId != null">exam_id,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="deptId != null">dept_id,</if>
+            <if test="registrationTime != null">registration_time,</if>
+            <if test="registrationStatus != null">registration_status,</if>
+            <if test="examStatus != null">exam_status,</if>
+            <if test="startTime != null">start_time,</if>
+            <if test="attemptCount != null">attempt_count,</if>
+            <if test="attemptNumber != null">attempt_number,</if>
+            <if test="createBy != null">create_by,</if>
+            create_time,
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="examId != null">#{examId},</if>
+            <if test="userId != null">#{userId},</if>
+            <if test="deptId != null">#{deptId},</if>
+            <if test="registrationTime != null">#{registrationTime},</if>
+            <if test="registrationStatus != null">#{registrationStatus},</if>
+            <if test="examStatus != null">#{examStatus},</if>
+            <if test="startTime != null">#{startTime},</if>
+            <if test="attemptCount != null">#{attemptCount},</if>
+            <if test="attemptNumber != null">#{attemptNumber},</if>
+            <if test="createBy != null">#{createBy},</if>
+            sysdate(),
+         </trim>
+        ON DUPLICATE KEY UPDATE
+            dept_id = VALUES(dept_id),
+            update_time = sysdate()
+    </insert>
+
+    <!-- 批量新增考试用户关联 -->
+    <insert id="batchInsertExamUser" parameterType="java.util.List">
+        insert into exam_user (exam_id, user_id, dept_id, registration_status, exam_status, attempt_number, create_by, create_time)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.examId}, #{item.userId}, #{item.deptId}, #{item.registrationStatus}, #{item.examStatus}, #{item.attemptNumber}, #{item.createBy}, sysdate())
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            dept_id = VALUES(dept_id),
+            update_time = sysdate()
+    </insert>
+
+    <update id="updateExamUser" parameterType="ExamUser">
+        update exam_user
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="examId != null">exam_id = #{examId},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="registrationTime != null">registration_time = #{registrationTime},</if>
+            <if test="registrationStatus != null">registration_status = #{registrationStatus},</if>
+            <if test="examStatus != null">exam_status = #{examStatus},</if>
+            <if test="startTime != null">start_time = #{startTime},</if>
+            <if test="submitTime != null">submit_time = #{submitTime},</if>
+            <if test="attemptCount != null">attempt_count = #{attemptCount},</if>
+            <if test="attemptNumber != null">attempt_number = #{attemptNumber},</if>
+            <if test="totalScore != null">total_score = #{totalScore},</if>
+            <if test="passScore != null">pass_score = #{passScore},</if>
+            <if test="isPassed != null">is_passed = #{isPassed},</if>
+            <if test="gradeTime != null">grade_time = #{gradeTime},</if>
+            <if test="gradeBy != null">grade_by = #{gradeBy},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = sysdate(),
+        </trim>
+        where id = #{id}
+    </update>
+
+    <!-- 更新考试用户状态 -->
+    <update id="updateExamUserStatus">
+        update exam_user set exam_status = #{examStatus}, update_time = sysdate()
+        where id = #{id}
+    </update>
+
+    <!-- 更新用户报名状态 -->
+    <update id="updateRegistrationStatus">
+        update exam_user set registration_status = #{registrationStatus}, update_time = sysdate()
+        where id = #{id}
+    </update>
+
+    <!-- 开始考试 -->
+    <update id="startExam" parameterType="ExamUser">
+        update exam_user set exam_status = 'in_progress', start_time = ifnull(start_time, sysdate()), update_time = sysdate()
+        where id = #{id}
+          and exam_id = #{examId}
+          and user_id = #{userId}
+    </update>
+
+    <!-- 提交考试 -->
+    <update id="submitExam" parameterType="ExamUser">
+        update exam_user set exam_status = 'submitted', submit_time = ifnull(submit_time, sysdate()), update_time = sysdate()
+        where id = #{id}
+          and exam_id = #{examId}
+          and user_id = #{userId}
+    </update>
+
+    <!-- 强制提交所有正在作答的考试；已登记/未开始人员不生成提交记录，避免结束考试破坏后续重新发布 -->
+    <update id="forceSubmitUnfinishedExams" parameterType="Long">
+        update exam_user set exam_status = 'submitted', submit_time = ifnull(submit_time, sysdate()), update_time = sysdate()
+        where exam_id = #{examId} and exam_status = 'in_progress'
+    </update>
+
+    <!-- 重置尚未开始的考试用户状态（用于重新发布考试，保留已开始/已提交历史轮次） -->
+    <update id="resetExamUsersStatus" parameterType="Long">
+        update exam_user set 
+            exam_status = 'registered', 
+            registration_status = 'approved', 
+            start_time = null,
+            submit_time = null,
+            total_score = null,
+            pass_score = null,
+            is_passed = '0',
+            attempt_count = 0,
+            grade_time = null,
+            grade_by = null,
+            update_time = sysdate()
+        where exam_id = #{examId}
+          and exam_status in ('registered', 'not_started')
+          and start_time is null
+          and submit_time is null
+    </update>
+
+    <!-- 重新发布时，为已完成历史轮次且尚未达到次数上限的用户补下一轮未开始记录 -->
+    <select id="selectUsersNeedNextAttempt" resultMap="ExamUserResult">
+        <include refid="selectExamUserVo"/>
+        inner join (
+            select exam_id, user_id, max(attempt_number) as max_attempt_number
+            from exam_user
+            where exam_id = #{examId}
+            group by exam_id, user_id
+            having max(attempt_number) &lt; #{maxAttempts}
+        ) latest on latest.exam_id = eu.exam_id
+                and latest.user_id = eu.user_id
+                and latest.max_attempt_number = eu.attempt_number
+        where eu.exam_id = #{examId}
+          and eu.exam_status in ('submitted', 'graded')
+    </select>
+
+    <!-- 审核考试用户 -->
+    <update id="approveExamUser">
+        update exam_user set registration_status = #{status}, update_time = sysdate()
+        where id = #{id}
+    </update>
+
+    <!-- 批量审核考试用户 -->
+    <update id="batchApproveExamUsers">
+        update exam_user set registration_status = #{status}, update_time = sysdate()
+        where id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <delete id="deleteExamUserById" parameterType="Long">
+        delete from exam_user where id = #{id}
+    </delete>
+
+    <!-- 批量删除考试用户关联 -->
+    <delete id="deleteExamUserByIds" parameterType="String">
+        delete from exam_user where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 根据考试ID删除考试用户关联 -->
+    <delete id="deleteExamUserByExamId" parameterType="Long">
+        delete from exam_user where exam_id = #{examId}
+    </delete>
+
+    <!-- 根据考试ID和用户ID删除考试用户关联 -->
+    <delete id="deleteExamUserByExamIdAndUserIds">
+        delete from exam_user where exam_id = #{examId} and user_id in
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </delete>
+
+</mapper>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.SysNoticeScopeMapper">
+    
+    <resultMap type="SysNoticeScope" id="SysNoticeScopeResult">
+        <result property="scopeId"     column="scope_id"      />
+        <result property="noticeId"    column="notice_id"     />
+        <result property="scopeType"   column="scope_type"    />
+        <result property="targetId"    column="target_id"     />
+        <result property="createTime"  column="create_time"   />
+    </resultMap>
+    
+    <insert id="batchInsertScope">
+        insert into sys_notice_scope(notice_id, scope_type, target_id, create_time) values
+        <foreach item="item" index="index" collection="list" separator=",">
+            (#{item.noticeId}, #{item.scopeType}, #{item.targetId}, sysdate())
+        </foreach>
+    </insert>
+    
+    <delete id="deleteScopeByNoticeId" parameterType="Long">
+        delete from sys_notice_scope where notice_id = #{noticeId}
+    </delete>
+    
+    <select id="selectScopeByNoticeId" parameterType="Long" resultMap="SysNoticeScopeResult">
+        select scope_id, notice_id, scope_type, target_id, create_time
+        from sys_notice_scope
+        where notice_id = #{noticeId}
+    </select>
+    
+    <select id="selectNoticeIdsByUserId" parameterType="Long" resultType="Long">
+        SELECT DISTINCT ns.notice_id
+        FROM sys_notice_scope ns
+        WHERE (
+            -- 个人范围
+            (ns.scope_type = '3' AND ns.target_id = #{userId})
+            OR
+            -- 部门范围（包含当前部门及其所有上级部门）
+            (ns.scope_type = '1' AND (
+                ns.target_id = (
+                    SELECT dept_id FROM sys_user WHERE user_id = #{userId}
+                )
+                OR
+                FIND_IN_SET(ns.target_id, (
+                    SELECT ancestors FROM sys_dept WHERE dept_id = (
+                        SELECT dept_id FROM sys_user WHERE user_id = #{userId}
+                    )
+                )) > 0
+            ))
+            OR
+            -- 岗位范围
+            (ns.scope_type = '2' AND ns.target_id IN (
+                SELECT post_id FROM sys_user_post WHERE user_id = #{userId}
+            ))
+            OR
+            -- 角色范围
+            (ns.scope_type = '2' AND ns.target_id IN (
+                SELECT role_id FROM sys_user_role WHERE user_id = #{userId}
+            ))
+        )
+    </select>
+    
+</mapper>
